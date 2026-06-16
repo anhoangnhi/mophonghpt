@@ -71,10 +71,25 @@
         .btn-delete-history:hover { background-color: #b71c1c; }
 
         /* MODAL QR CODE */
-        #qrModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 999; justify-content: center; align-items: center; overflow: hidden; }
-        .qr-content { background: white; padding: 30px; border-radius: 10px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.3); transition: 0.3s; }
-        .qr-img { border: 2px solid #ccc; padding: 10px; border-radius: 8px; margin: 15px 0; background: white; transition: transform 0.3s ease; }
-        .qr-zoomed { transform: scale(1.6); z-index: 1000; box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
+        #qrModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 999; justify-content: center; align-items: center; overflow: hidden; }
+        .qr-content { background: white; padding: 30px; border-radius: 10px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.3); transition: 0.3s; position: relative;}
+        
+        /* Hiệu ứng QR Zoom toàn màn hình */
+        .qr-img { border: 2px solid #ccc; padding: 10px; border-radius: 8px; margin: 15px 0; background: white; transition: all 0.3s ease; }
+        .qr-zoomed { 
+            position: fixed !important; 
+            top: 50% !important; 
+            left: 50% !important; 
+            transform: translate(-50%, -50%) !important; 
+            width: 90vmin !important; /* 90% chiều nhỏ nhất của màn hình */
+            height: 90vmin !important; 
+            z-index: 10000; 
+            box-shadow: 0 0 0 100vmax rgba(0,0,0,0.9); /* Làm tối xung quanh */
+            margin: 0 !important;
+            max-width: none !important;
+            max-height: none !important;
+        }
+
         .btn-zoom { padding: 6px 15px; background: #0288d1; color: white; border: none; border-radius: 4px; cursor: pointer; margin-bottom: 10px; font-weight: bold;}
         .btn-zoom:hover { background: #0277bd; }
         .btn-close-qr { padding: 8px 20px; background: #e53935; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 10px;}
@@ -165,15 +180,15 @@
             <p style="color: #555; font-size: 14px;">Học sinh sử dụng Camera hoặc Zalo để quét</p>
             <button class="btn-zoom" onclick="toggleZoomQR()">🔍 Phóng to / Thu nhỏ</button>
             <br>
-            <img id="qrImage" class="qr-img" src="" alt="Mã QR" width="200" height="200">
+            <img id="qrImage" class="qr-img" src="" alt="Mã QR" width="200" height="200" onclick="toggleZoomQR()">
             <br>
             <button class="btn-close-qr" onclick="closeQRCode()">Đóng</button>
         </div>
     </div>
 
     <script>
-        // DÁN LẠI LINK GOOGLE SCRIPT MỚI NHẤT CỦA BẠN VÀO ĐÂY
-        const GOOGLE_SHEET_API_URL = "https://script.google.com/macros/s/AKfycbw8GRALLxMZwz9Rt5_mNyD0Y1_zw4F2TdmE_l82t4Xu5OT-5XMGryGzWe6RuXKRxf9wOA/exec"; 
+        // --- DÁN LẠI LINK GOOGLE SCRIPT CỦA BẠN VÀO ĐÂY ---
+        const GOOGLE_SHEET_API_URL = "https://script.google.com/macros/s/AKfycby8NjAiXk7k3C5h564D5WfLlyAL32AlRxSA69C5Vr17xXHgHooZU3Zr-n0jlRitNCo/exec"; 
 
         let isAdminLoggedIn = false;
         let formCounter = 0;
@@ -223,8 +238,10 @@
 
         // --- HÀM TẠO VÀ PHÓNG TO QR CODE ---
         function showQRCode() {
+            // Lấy URL thực tế sau khi bạn đã up web lên Github Pages (ví dụ: https://tencuaban.github.io/phanmem)
+            // Nếu bạn đang chạy file ở máy tính (dạng C:/Users/...), mã QR sinh ra sẽ lỗi. Cần có link HTTPS.
             const currentUrl = window.location.href; 
-            const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(currentUrl)}`;
+            const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(currentUrl)}`;
             document.getElementById("qrImage").src = qrApiUrl;
             document.getElementById("qrImage").classList.remove("qr-zoomed"); // Đặt lại zoom
             document.getElementById("qrModal").style.display = "flex";
@@ -235,6 +252,7 @@
         }
 
         function closeQRCode() {
+            document.getElementById("qrImage").classList.remove("qr-zoomed"); // Thu nhỏ lại trước khi đóng
             document.getElementById("qrModal").style.display = "none";
         }
 
@@ -522,20 +540,34 @@
             </div>`;
         }
 
-        function validateAddText(id) {
-            const txt = document.getElementById(`addTxt_${id}`).value.trim().toLowerCase();
-            const msgBox = document.getElementById(`msgTxt_${id}`);
-            const k = parseFloat(document.getElementById(`subSteps_${id}`).getAttribute("data-k"));
-            if (!txt) { msgBox.innerHTML = ""; return; }
+       function validateAddText(id) {
+    const txt = document.getElementById(`addTxt_${id}`).value.trim().toLowerCase();
+    const msgBox = document.getElementById(`msgTxt_${id}`);
+    const k = parseFloat(document.getElementById(`subSteps_${id}`).getAttribute("data-k"));
+    if (!txt) { msgBox.innerHTML = ""; return; }
 
-            const correctWord = (k > 1) ? "nước" : "hóa chất" : "hoá chất";
-            
-            if (txt === correctWord) {
-                msgBox.innerHTML = `<div class="success"><span style="font-size: 18px;">😊</span> Bạn đã chọn đúng!</div>`;
-            } else {
-                msgBox.innerHTML = `<div class="error"><span style="font-size: 18px;">😢</span> Sai rồi, cần thêm gì nhỉ?</div>`;
-            }
+    // Biến lưu trạng thái đúng/sai
+    let isCorrect = false;
+
+    if (k > 1) {
+        // Trường hợp thêm nước
+        if (txt === "nước") {
+            isCorrect = true;
         }
+    } else {
+        // Trường hợp thêm hóa chất: CHẤP NHẬN CẢ 2 CÁCH GÕ DẤU (Dùng dấu || nghĩa là HOẶC)
+        if (txt === "hóa chất" || txt === "hoá chất") {
+            isCorrect = true;
+        }
+    }
+    
+    // In ra thông báo
+    if (isCorrect) {
+        msgBox.innerHTML = `<div class="success"><span style="font-size: 20px;">✔️</span> Lựa chọn chính xác!</div>`;
+    } else {
+        msgBox.innerHTML = `<div class="error"><span style="font-size: 20px;">❌</span> Suy nghĩ lại xem cần thêm gì nhỉ?</div>`;
+    }
+}
 
         function calcVn(id) {
             const k = parseFloat(document.getElementById(`vnK_${id}`).value);
