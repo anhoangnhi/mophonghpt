@@ -10,14 +10,20 @@
         
         /* HEADER: Thông tin và thời gian */
         .header-bar { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; border: 2px solid #1e88e5; }
-        .info-inputs { display: flex; gap: 10px; align-items: center; flex-wrap: wrap;}
+        .info-inputs { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; flex: 1;}
         .info-inputs input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 15px; }
         .btn-start { padding: 8px 15px; background-color: #43a047; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
         .btn-start:hover { background-color: #2e7d32; }
         .btn-save { padding: 8px 15px; background-color: #1e88e5; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; display: none; }
         .btn-save:hover { background-color: #1565c0; }
-        .btn-qr { padding: 8px 15px; background-color: #9c27b0; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        
+        /* NÚT ADMIN & QR (Mặc định ẩn) */
+        .admin-controls { display: flex; gap: 10px; align-items: center; }
+        .btn-admin { padding: 8px 15px; background-color: #455a64; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .btn-admin:hover { background-color: #263238; }
+        .btn-qr { padding: 8px 15px; background-color: #9c27b0; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; display: none; }
         .btn-qr:hover { background-color: #7b1fa2; }
+        
         .timer { font-size: 18px; font-weight: bold; color: #d32f2f; background: #ffebee; padding: 5px 15px; border-radius: 5px; border: 1px solid #d32f2f;}
 
         /* KHU VỰC CHÍNH */
@@ -56,8 +62,8 @@
         .btn-mhc { background-color: #f57f17; }
         .btn-mhc:hover { background-color: #e65100; transform: scale(1.05); }
 
-        /* BẢNG LỊCH SỬ LÀM BÀI */
-        .history-section { background: #fff; border: 2px solid #607d8b; border-radius: 8px; padding: 15px; margin-top: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); overflow-x: auto;}
+        /* BẢNG LỊCH SỬ LÀM BÀI (Mặc định ẩn) */
+        .history-section { background: #fff; border: 2px solid #607d8b; border-radius: 8px; padding: 15px; margin-top: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); overflow-x: auto; display: none;}
         .history-table { width: 100%; border-collapse: collapse; margin-top: 10px; min-width: 600px;}
         .history-table th, .history-table td { border: 1px solid #ccc; padding: 10px; text-align: center; }
         .history-table th { background-color: #eceff1; color: #37474f; }
@@ -83,9 +89,13 @@
             <input type="text" id="studentClass" placeholder="Nhập Lớp" required>
             <button class="btn-start" id="btnStart" onclick="startExercise()">Bắt đầu làm bài</button>
             <button class="btn-save" id="btnSave" onclick="saveExercise()">Nộp bài & Lưu điểm</button>
-            <button class="btn-qr" onclick="showQRCode()">Tạo Mã QR</button>
         </div>
-        <div class="timer" id="timerDisplay">⏱ Thời gian: 00:00</div>
+        
+        <div class="admin-controls">
+            <button class="btn-qr" id="btnShowQR" onclick="showQRCode()">Tạo Mã QR</button>
+            <div class="timer" id="timerDisplay">⏱ 00:00</div>
+            <button class="btn-admin" id="btnAdminLogin" onclick="toggleAdmin()">Đăng nhập Admin</button>
+        </div>
     </div>
 
     <div class="main-container">
@@ -122,9 +132,9 @@
         </div>
     </div>
 
-    <div class="history-section">
+    <div class="history-section" id="adminHistorySection">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-            <h3 style="color: #37474f; margin: 0; border: none;">Lịch Sử Làm Bài (Cập nhật tự động)</h3>
+            <h3 style="color: #37474f; margin: 0; border: none;">Khu vực Admin: Lịch Sử Làm Bài Của Học Sinh</h3>
             <div style="display: flex; gap: 10px;">
                 <button class="btn-start" onclick="fetchDataFromBackend()" style="background-color: #1976d2;">🔄 Làm mới dữ liệu</button>
                 <button class="btn-delete-history" onclick="clearAllHistory()">Xóa toàn bộ dữ liệu</button>
@@ -160,10 +170,39 @@
         // --- CẤU HÌNH API BACKEND ---
         const GOOGLE_SHEET_API_URL = "https://script.google.com/macros/s/AKfycby8NjAiXk7k3C5h564D5WfLlyAL32AlRxSA69C5Vr17xXHgHooZU3Zr-n0jlRitNCo/exec"; 
 
+        // --- CẤU HÌNH ADMIN ---
+        const ADMIN_PASSWORD = "123"; // Đổi mật khẩu tại đây
+        let isAdminLoggedIn = false;
+
         let formCounter = 0;
         let isStarted = false;
         let timerInterval;
         let secondsElapsed = 0;
+
+        // --- HÀM XỬ LÝ ĐĂNG NHẬP ADMIN ---
+        function toggleAdmin() {
+            if (isAdminLoggedIn) {
+                // Đăng xuất
+                isAdminLoggedIn = false;
+                document.getElementById("btnAdminLogin").innerText = "Đăng nhập Admin";
+                document.getElementById("btnAdminLogin").style.backgroundColor = "#455a64";
+                document.getElementById("btnShowQR").style.display = "none";
+                document.getElementById("adminHistorySection").style.display = "none";
+            } else {
+                // Đăng nhập
+                const pass = prompt("Vui lòng nhập mật khẩu Admin:");
+                if (pass === ADMIN_PASSWORD) {
+                    isAdminLoggedIn = true;
+                    document.getElementById("btnAdminLogin").innerText = "Đăng xuất Admin";
+                    document.getElementById("btnAdminLogin").style.backgroundColor = "#e53935"; // Chuyển màu đỏ báo hiệu
+                    document.getElementById("btnShowQR").style.display = "inline-block";
+                    document.getElementById("adminHistorySection").style.display = "block";
+                    fetchDataFromBackend(); // Tải dữ liệu ngay khi đăng nhập thành công
+                } else if (pass !== null) {
+                    alert("Sai mật khẩu!");
+                }
+            }
+        }
 
         // --- HÀM TẠO QR CODE ---
         function showQRCode() {
@@ -199,7 +238,7 @@
                 secondsElapsed++;
                 const m = String(Math.floor(secondsElapsed / 60)).padStart(2, '0');
                 const s = String(secondsElapsed % 60).padStart(2, '0');
-                document.getElementById("timerDisplay").innerText = `⏱ Thời gian: ${m}:${s}`;
+                document.getElementById("timerDisplay").innerText = `⏱ ${m}:${s}`;
             }, 1000);
         }
 
@@ -216,7 +255,7 @@
 
             const name = document.getElementById("studentName").value;
             const cls = document.getElementById("studentClass").value;
-            const timeStr = document.getElementById("timerDisplay").innerText.replace("⏱ Thời gian: ", "");
+            const timeStr = document.getElementById("timerDisplay").innerText.replace("⏱ ", "");
             const dateStr = new Date().toLocaleString("vi-VN");
 
             const studentData = { name: name, class: cls, time: timeStr, score: score, date: dateStr };
@@ -253,9 +292,13 @@
             document.getElementById("btnSave").innerText = "Nộp bài & Lưu điểm";
             document.getElementById("btnSave").disabled = false;
             document.getElementById("overlay").style.display = "flex";
-            document.getElementById("timerDisplay").innerText = "⏱ Thời gian: 00:00";
+            document.getElementById("timerDisplay").innerText = "⏱ 00:00";
             clearWorkspace();
-            fetchDataFromBackend();
+            
+            // Nếu admin đang bật thì cập nhật lại bảng
+            if (isAdminLoggedIn) {
+                fetchDataFromBackend();
+            }
         }
 
         async function fetchDataFromBackend() {
@@ -302,14 +345,13 @@
             }
         }
 
-        // --- CÁC HÀM XỬ LÝ CLICK ---
+        // --- CÁC HÀM XỬ LÝ CLICK CỦA HỌC SINH ---
         function moveToWorkspace(dataId) {
             if (!isStarted && (dataId.startsWith("ct_") || dataId.startsWith("bai") || dataId.startsWith("text"))) {
                 alert("Bạn cần nhập thông tin và Bấm Bắt đầu mới có thể làm bài!");
                 return;
             }
 
-            // Ngăn chặn bấm 2 công thức Vnước và mhc ở cột phải, vì đã có nút trực tiếp bên trong form
             if (dataId === "ct_vn" || dataId === "ct_mhc") {
                 alert("Hãy nhấn trực tiếp vào nút màu xanh hoặc cam bên trong Bài làm của bạn để chọn công thức nhé!");
                 return;
@@ -337,7 +379,6 @@
             const container = document.getElementById(`subFormContainer_${id}`);
             if (!container) return;
             
-            // Xóa rỗng rồi vẽ lại form được chọn
             container.innerHTML = ""; 
 
             if (dataId === "ct_vn") {
@@ -520,8 +561,6 @@
             formCounter = 0;
         }
 
-        // Tải lịch sử khi mở trang web
-        window.onload = fetchDataFromBackend;
     </script>
 </body>
 </html>
