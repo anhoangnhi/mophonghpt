@@ -155,8 +155,6 @@
 
     <script>
         // --- CẤU HÌNH API BACKEND (ĐỂ ĐỒNG BỘ TỪ NHIỀU ĐIỆN THOẠI) ---
-        // Bro sẽ thay link Google App Script của bro vào biến này sau.
-        // Tạm thời để trống, hệ thống sẽ tự động lưu vào LocalStorage để test.
         const GOOGLE_SHEET_API_URL = "https://script.google.com/macros/s/AKfycby8NjAiXk7k3C5h564D5WfLlyAL32AlRxSA69C5Vr17xXHgHooZU3Zr-n0jlRitNCo/exec"; 
 
         let formCounter = 0;
@@ -166,9 +164,7 @@
 
         // --- HÀM TẠO QR CODE ---
         function showQRCode() {
-            // Lấy URL hiện tại của trang web (Link Github Pages sau khi up lên)
             const currentUrl = window.location.href; 
-            // Gọi API tạo QR code miễn phí từ mã nguồn mở
             const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(currentUrl)}`;
             
             document.getElementById("qrImage").src = qrApiUrl;
@@ -229,7 +225,6 @@
 
             // Xử lý lưu trữ
             if (GOOGLE_SHEET_API_URL !== "") {
-                // Nếu đã setup Google Sheet -> Bắn data lên mạng
                 try {
                     await fetch(GOOGLE_SHEET_API_URL, {
                         method: "POST",
@@ -241,7 +236,6 @@
                     console.error("Lỗi khi gửi dữ liệu:", e);
                 }
             } else {
-                // Nếu chưa có link API -> Lưu tạm trên máy cục bộ (LocalStorage)
                 let historyData = JSON.parse(localStorage.getItem("labHistory")) || [];
                 historyData.push(studentData);
                 localStorage.setItem("labHistory", JSON.stringify(historyData));
@@ -272,7 +266,6 @@
             let historyData = [];
 
             if (GOOGLE_SHEET_API_URL !== "") {
-                // Tải dữ liệu từ Google Sheet (Cần thiết lập API GET)
                 try {
                     const response = await fetch(GOOGLE_SHEET_API_URL);
                     historyData = await response.json();
@@ -311,7 +304,7 @@
             }
         }
 
-        // --- CÁC HÀM XỬ LÝ KÉO THẢ & CLICK ---
+        // --- CÁC HÀM XỬ LÝ KÉO THẢ & CHẠM THÔNG MINH ---
         function allowDrop(ev) { ev.preventDefault(); ev.currentTarget.classList.add("drag-over"); }
         function dragLeave(ev) { ev.currentTarget.classList.remove("drag-over"); }
         function drag(ev) { ev.dataTransfer.setData("text", ev.target.id); }
@@ -324,11 +317,31 @@
         }
 
         function moveToWorkspace(dataId) {
-            if (!isStarted && dataId.startsWith("ct_") || !isStarted && dataId.startsWith("bai") || !isStarted && dataId.startsWith("text")) {
+            if (!isStarted && (dataId.startsWith("ct_") || dataId.startsWith("bai") || dataId.startsWith("text"))) {
                 alert("Bạn cần nhập thông tin và Bấm Bắt đầu mới có thể làm bài!");
                 return;
             }
 
+            // Xử lý chạm thông minh cho điện thoại
+            if (dataId === "ct_vn" || dataId === "ct_mhc") {
+                const subDrops = document.querySelectorAll('.sub-dropzone');
+                let targetId = null;
+                
+                // Tìm khu vực nhập liệu con (sub-dropzone) cuối cùng đang chờ
+                for (let i = subDrops.length - 1; i >= 0; i--) {
+                    if (subDrops[i].innerText.includes("Chạm vào công thức")) {
+                        targetId = subDrops[i].id.split('_')[1];
+                        break; 
+                    }
+                }
+
+                if (targetId) {
+                    renderSubFormula(dataId, targetId);
+                    return; 
+                }
+            }
+
+            // Xử lý chung cho click và kéo thả các phần tử khác
             const draggedElement = document.getElementById(dataId);
             const workspace = document.getElementById("workspace");
 
@@ -343,6 +356,33 @@
                 formCounter++;
                 if (dataId === "ct_k1") showFormK1(workspace, formCounter);
                 if (dataId === "ct_k2") showFormK2(workspace, formCounter);
+            }
+        }
+
+        function renderSubFormula(dataId, id) {
+            const subDrop = document.getElementById(`subDrop_${id}`);
+            if (!subDrop) return;
+            
+            if (dataId === "ct_vn") {
+                subDrop.innerHTML = `
+                    <div style="color:#000; text-align:left; font-style:normal;">
+                        <div style="margin-bottom:10px; font-weight:bold; color:#d32f2f;">Vnước = (K - 1.000).Vđc</div>
+                        <div class="input-row"><label>K = </label><input type="number" step="any" id="vnK_${id}" oninput="calcVn(${id})"></div>
+                        <div class="input-row"><label>Vđc = </label><input type="number" step="any" id="vnVdc_${id}" oninput="calcVn(${id})"></div>
+                        <div class="result-box">=> Vnước = <span id="resVn_${id}">...</span></div>
+                        <div id="msgVn_${id}"></div>
+                    </div>`;
+            } else if (dataId === "ct_mhc") {
+                subDrop.innerHTML = `
+                    <div style="color:#000; text-align:left; font-style:normal;">
+                        <div style="margin-bottom:10px; font-weight:bold; color:#d32f2f;">mhc = (1.000 - K).NLT.E.Vđc / 1000</div>
+                        <div class="input-row"><label>K = </label><input type="number" step="any" id="mK_${id}" oninput="calcMhc(${id})"></div>
+                        <div class="input-row"><label>Vđc = </label><input type="number" step="any" id="mVdc_${id}" oninput="calcMhc(${id})"></div>
+                        <div class="input-row"><label>E = </label><input type="number" step="any" id="mE_${id}" oninput="calcMhc(${id})"></div>
+                        <div class="input-row"><label>NLT = </label><input type="number" step="any" id="mNlt_${id}" oninput="calcMhc(${id})"></div>
+                        <div class="result-box">=> mhc = <span id="resMhc_${id}">...</span></div>
+                        <div id="msgMhc_${id}"></div>
+                    </div>`;
             }
         }
 
@@ -434,7 +474,7 @@
                 </div>
                 <div id="msgTxt_${id}"></div>
                 <div class="sub-dropzone" id="subDrop_${id}" ondrop="dropSub(event, ${id})" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
-                    (Kéo công thức Vnước hoặc mhc vào đây)
+                    (Chạm vào công thức Vnước hoặc mhc ở cột bên phải để tự động điền vào đây)
                 </div>
             </div>`;
         }
@@ -459,28 +499,10 @@
             ev.stopPropagation(); 
             ev.currentTarget.classList.remove("drag-over");
             const dataId = ev.dataTransfer.getData("text");
-            const subDrop = document.getElementById(`subDrop_${id}`);
-
-            if (dataId === "ct_vn") {
-                subDrop.innerHTML = `
-                    <div style="color:#000; text-align:left; font-style:normal;">
-                        <div style="margin-bottom:10px; font-weight:bold; color:#d32f2f;">Vnước = (K - 1.000).Vđc</div>
-                        <div class="input-row"><label>K = </label><input type="number" step="any" id="vnK_${id}" oninput="calcVn(${id})"></div>
-                        <div class="input-row"><label>Vđc = </label><input type="number" step="any" id="vnVdc_${id}" oninput="calcVn(${id})"></div>
-                        <div class="result-box">=> Vnước = <span id="resVn_${id}">...</span></div>
-                        <div id="msgVn_${id}"></div>
-                    </div>`;
-            } else if (dataId === "ct_mhc") {
-                subDrop.innerHTML = `
-                    <div style="color:#000; text-align:left; font-style:normal;">
-                        <div style="margin-bottom:10px; font-weight:bold; color:#d32f2f;">mhc = (1.000 - K).NLT.E.Vđc / 1000</div>
-                        <div class="input-row"><label>K = </label><input type="number" step="any" id="mK_${id}" oninput="calcMhc(${id})"></div>
-                        <div class="input-row"><label>Vđc = </label><input type="number" step="any" id="mVdc_${id}" oninput="calcMhc(${id})"></div>
-                        <div class="input-row"><label>E = </label><input type="number" step="any" id="mE_${id}" oninput="calcMhc(${id})"></div>
-                        <div class="input-row"><label>NLT = </label><input type="number" step="any" id="mNlt_${id}" oninput="calcMhc(${id})"></div>
-                        <div class="result-box">=> mhc = <span id="resMhc_${id}">...</span></div>
-                        <div id="msgMhc_${id}"></div>
-                    </div>`;
+            
+            // Xử lý kéo thả tay trên máy tính
+            if (dataId === "ct_vn" || dataId === "ct_mhc") {
+                renderSubFormula(dataId, id);
             }
         }
 
