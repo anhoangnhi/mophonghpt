@@ -71,9 +71,12 @@
         .btn-delete-history:hover { background-color: #b71c1c; }
 
         /* MODAL QR CODE */
-        #qrModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 999; justify-content: center; align-items: center; }
-        .qr-content { background: white; padding: 30px; border-radius: 10px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
-        .qr-content img { border: 2px solid #ccc; padding: 10px; border-radius: 8px; margin: 15px 0; }
+        #qrModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 999; justify-content: center; align-items: center; overflow: hidden; }
+        .qr-content { background: white; padding: 30px; border-radius: 10px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.3); transition: 0.3s; }
+        .qr-img { border: 2px solid #ccc; padding: 10px; border-radius: 8px; margin: 15px 0; background: white; transition: transform 0.3s ease; }
+        .qr-zoomed { transform: scale(1.6); z-index: 1000; box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
+        .btn-zoom { padding: 6px 15px; background: #0288d1; color: white; border: none; border-radius: 4px; cursor: pointer; margin-bottom: 10px; font-weight: bold;}
+        .btn-zoom:hover { background: #0277bd; }
         .btn-close-qr { padding: 8px 20px; background: #e53935; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 10px;}
         .btn-close-qr:hover { background: #b71c1c; }
 
@@ -137,7 +140,7 @@
             <h3 style="color: #37474f; margin: 0; border: none;">Khu vực Admin: Lịch Sử Làm Bài Của Học Sinh</h3>
             <div style="display: flex; gap: 10px;">
                 <button class="btn-start" onclick="fetchDataFromBackend()" style="background-color: #1976d2;">🔄 Làm mới dữ liệu</button>
-                <button class="btn-delete-history" onclick="clearAllHistory()">Xóa toàn bộ dữ liệu</button>
+                <button class="btn-delete-history" onclick="clearAllHistory()">Xóa toàn bộ dữ liệu máy này</button>
             </div>
         </div>
         <table class="history-table">
@@ -160,27 +163,26 @@
         <div class="qr-content">
             <h2 style="color: #1e88e5; margin-top: 0;">Quét mã để làm bài</h2>
             <p style="color: #555; font-size: 14px;">Học sinh sử dụng Camera hoặc Zalo để quét</p>
-            <img id="qrImage" src="" alt="Mã QR" width="200" height="200">
+            <button class="btn-zoom" onclick="toggleZoomQR()">🔍 Phóng to / Thu nhỏ</button>
+            <br>
+            <img id="qrImage" class="qr-img" src="" alt="Mã QR" width="200" height="200">
             <br>
             <button class="btn-close-qr" onclick="closeQRCode()">Đóng</button>
         </div>
     </div>
 
     <script>
-        // --- CẤU HÌNH API BACKEND ---
-        const GOOGLE_SHEET_API_URL = "https://script.google.com/macros/s/AKfycby8NjAiXk7k3C5h564D5WfLlyAL32AlRxSA69C5Vr17xXHgHooZU3Zr-n0jlRitNCo/exec"; 
+        // DÁN LẠI LINK GOOGLE SCRIPT MỚI NHẤT CỦA BẠN VÀO ĐÂY
+        const GOOGLE_SHEET_API_URL = "https://script.google.com/macros/s/AKfycbw8GRALLxMZwz9Rt5_mNyD0Y1_zw4F2TdmE_l82t4Xu5OT-5XMGryGzWe6RuXKRxf9wOA/exec"; 
 
-        // --- CẤU HÌNH ADMIN ---
-        const ADMIN_PASSWORD = "123"; // Đổi mật khẩu tại đây
         let isAdminLoggedIn = false;
-
         let formCounter = 0;
         let isStarted = false;
         let timerInterval;
         let secondsElapsed = 0;
 
-        // --- HÀM XỬ LÝ ĐĂNG NHẬP ADMIN ---
-        function toggleAdmin() {
+        // --- HÀM XỬ LÝ ĐĂNG NHẬP ADMIN AN TOÀN ---
+        async function toggleAdmin() {
             if (isAdminLoggedIn) {
                 // Đăng xuất
                 isAdminLoggedIn = false;
@@ -189,27 +191,47 @@
                 document.getElementById("btnShowQR").style.display = "none";
                 document.getElementById("adminHistorySection").style.display = "none";
             } else {
-                // Đăng nhập
+                // Yêu cầu nhập mật khẩu và gửi lên Google Sheets kiểm tra
                 const pass = prompt("Vui lòng nhập mật khẩu Admin:");
-                if (pass === ADMIN_PASSWORD) {
-                    isAdminLoggedIn = true;
-                    document.getElementById("btnAdminLogin").innerText = "Đăng xuất Admin";
-                    document.getElementById("btnAdminLogin").style.backgroundColor = "#e53935"; // Chuyển màu đỏ báo hiệu
-                    document.getElementById("btnShowQR").style.display = "inline-block";
-                    document.getElementById("adminHistorySection").style.display = "block";
-                    fetchDataFromBackend(); // Tải dữ liệu ngay khi đăng nhập thành công
-                } else if (pass !== null) {
-                    alert("Sai mật khẩu!");
+                if (!pass) return;
+
+                document.getElementById("btnAdminLogin").innerText = "Đang kiểm tra...";
+                
+                try {
+                    // Gửi request kèm action verifyPass
+                    const response = await fetch(GOOGLE_SHEET_API_URL + "?action=verifyPass&pass=" + encodeURIComponent(pass));
+                    const result = await response.json();
+
+                    if (result.valid) {
+                        isAdminLoggedIn = true;
+                        document.getElementById("btnAdminLogin").innerText = "Đăng xuất Admin";
+                        document.getElementById("btnAdminLogin").style.backgroundColor = "#e53935"; 
+                        document.getElementById("btnShowQR").style.display = "inline-block";
+                        document.getElementById("adminHistorySection").style.display = "block";
+                        fetchDataFromBackend(); 
+                    } else {
+                        alert("Mật khẩu không đúng hoặc chưa cài đặt Sheet 'pass'!");
+                        document.getElementById("btnAdminLogin").innerText = "Đăng nhập Admin";
+                    }
+                } catch (e) {
+                    alert("Lỗi kết nối đến máy chủ Google Sheet! Vui lòng kiểm tra lại link.");
+                    document.getElementById("btnAdminLogin").innerText = "Đăng nhập Admin";
+                    console.error(e);
                 }
             }
         }
 
-        // --- HÀM TẠO QR CODE ---
+        // --- HÀM TẠO VÀ PHÓNG TO QR CODE ---
         function showQRCode() {
             const currentUrl = window.location.href; 
             const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(currentUrl)}`;
             document.getElementById("qrImage").src = qrApiUrl;
+            document.getElementById("qrImage").classList.remove("qr-zoomed"); // Đặt lại zoom
             document.getElementById("qrModal").style.display = "flex";
+        }
+
+        function toggleZoomQR() {
+            document.getElementById("qrImage").classList.toggle("qr-zoomed");
         }
 
         function closeQRCode() {
@@ -248,7 +270,6 @@
             clearInterval(timerInterval);
             isStarted = false;
             
-            // Tính điểm
             const workspace = document.getElementById("workspace");
             const correctSteps = workspace.querySelectorAll('.success').length;
             const score = correctSteps * 10; 
@@ -295,7 +316,6 @@
             document.getElementById("timerDisplay").innerText = "⏱ 00:00";
             clearWorkspace();
             
-            // Nếu admin đang bật thì cập nhật lại bảng
             if (isAdminLoggedIn) {
                 fetchDataFromBackend();
             }
@@ -339,7 +359,7 @@
         }
 
         function clearAllHistory() {
-            if(confirm("Xóa lịch sử trên máy này? (Nếu dùng Google Sheet, bạn phải tự vào file Sheet để xóa)")) {
+            if(confirm("Lưu ý: Nút này chỉ xóa hiển thị trên thiết bị này. Để xóa triệt để, bạn phải vào Google Sheet để xóa hàng.\n\nBạn có muốn tiếp tục?")) {
                 localStorage.removeItem("labHistory");
                 fetchDataFromBackend();
             }
@@ -374,7 +394,6 @@
             }
         }
 
-        // HÀM HIỂN THỊ CÔNG THỨC CON THEO NÚT BẤM
         function renderSubFormula(dataId, id) {
             const container = document.getElementById(`subFormContainer_${id}`);
             if (!container) return;
