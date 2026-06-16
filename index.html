@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phần mềm Mô phỏng Hóa Phân tích</title>
+    <style>
+        * { box-sizing: border-box; font-family: Arial, sans-serif; }
+        body { display: flex; flex-direction: column; min-height: 100vh; margin: 0; padding: 10px; background-color: #f0f2f5; gap: 10px; }
+        
+        /* HEADER: Thông tin và thời gian */
+        .header-bar { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; border: 2px solid #1e88e5; }
+        .info-inputs { display: flex; gap: 10px; align-items: center; flex-wrap: wrap;}
+        .info-inputs input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 15px; }
+        .btn-start { padding: 8px 15px; background-color: #43a047; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .btn-start:hover { background-color: #2e7d32; }
+        .btn-save { padding: 8px 15px; background-color: #1e88e5; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; display: none; }
+        .btn-save:hover { background-color: #1565c0; }
+        .btn-qr { padding: 8px 15px; background-color: #9c27b0; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .btn-qr:hover { background-color: #7b1fa2; }
+        .timer { font-size: 18px; font-weight: bold; color: #d32f2f; background: #ffebee; padding: 5px 15px; border-radius: 5px; border: 1px solid #d32f2f;}
+
+        /* KHU VỰC CHÍNH */
+        .main-container { display: flex; flex: 1; gap: 10px; flex-wrap: wrap; }
+        .zone { flex: 1; min-width: 300px; border: 2px solid; border-radius: 8px; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+        h3 { text-align: center; margin-top: 0; padding-bottom: 10px; border-bottom: 2px dashed #ccc; }
+        
+        #left-zone { background-color: #e3f2fd; border-color: #1e88e5; }
+        #middle-zone { flex: 1.5; background-color: #fffde7; border-color: #fbc02d; box-shadow: 0 0 15px rgba(251, 192, 45, 0.4); position: relative;}
+        #middle-zone.drag-over { background-color: #fff59d; border: 2px dashed #f57f17; }
+        #right-zone { background-color: #e8f5e9; border-color: #43a047; }
+
+        .draggable-item { background-color: white; padding: 12px; border: 1px solid #ccc; border-radius: 6px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.5; font-size: 15px; }
+        .draggable-item:active { cursor: grabbing; }
+        .draggable-item:hover { border-color: #000; transform: scale(1.01); transition: 0.2s; background-color: #f9f9f9; }
+
+        .input-form { background: #ffffff; padding: 15px; border: 2px solid #ff9800; border-radius: 6px; margin-top: 10px; }
+        .input-row { margin-bottom: 10px; display: flex; align-items: center; }
+        .input-row label { width: 50px; font-weight: bold; }
+        .input-row input { width: 120px; padding: 6px; border: 1px solid #aaa; border-radius: 4px; font-size: 14px;}
+        
+        .result-box { margin-top: 15px; font-size: 18px; font-weight: bold; color: #1e88e5; border-top: 1px dashed #ccc; padding-top: 10px; }
+        
+        .btn-clear { margin-top: auto; padding: 10px; background-color: #ffcc80; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .btn-clear:hover { background-color: #ffb74d; }
+
+        /* Các lớp thông báo đúng sai */
+        .success { color: #2e7d32; font-weight: bold; margin-top: 10px; background: #e8f5e9; padding: 10px; border-radius: 5px; font-size: 15px; display: flex; align-items: center; gap: 5px;}
+        .error { color: #c62828; font-weight: bold; margin-top: 10px; background: #ffebee; padding: 10px; border-radius: 5px; font-size: 15px; display: flex; align-items: center; gap: 5px;}
+        
+        /* Khu vực Drop con */
+        .sub-steps { margin-top: 15px; padding-top: 15px; border-top: 2px solid #ccc; display: none; }
+        .sub-dropzone { border: 2px dashed #1e88e5; padding: 20px; background: #e3f2fd; text-align: center; margin-top: 15px; border-radius: 5px; color: #1e88e5; font-style: italic;}
+        .sub-dropzone.drag-over { background-color: #bbdefb; }
+
+        /* BẢNG LỊCH SỬ LÀM BÀI */
+        .history-section { background: #fff; border: 2px solid #607d8b; border-radius: 8px; padding: 15px; margin-top: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); overflow-x: auto;}
+        .history-table { width: 100%; border-collapse: collapse; margin-top: 10px; min-width: 600px;}
+        .history-table th, .history-table td { border: 1px solid #ccc; padding: 10px; text-align: center; }
+        .history-table th { background-color: #eceff1; color: #37474f; }
+        .btn-delete-history { background-color: #e53935; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; }
+        .btn-delete-history:hover { background-color: #b71c1c; }
+
+        /* MODAL QR CODE */
+        #qrModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 999; justify-content: center; align-items: center; }
+        .qr-content { background: white; padding: 30px; border-radius: 10px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        .qr-content img { border: 2px solid #ccc; padding: 10px; border-radius: 8px; margin: 15px 0; }
+        .btn-close-qr { padding: 8px 20px; background: #e53935; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 10px;}
+        .btn-close-qr:hover { background: #b71c1c; }
+
+        /* Lớp phủ ngăn thao tác khi chưa bắt đầu */
+        #overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 10; display: flex; justify-content: center; align-items: center; border-radius: 6px; font-weight: bold; color: #d32f2f; font-size: 18px; text-align: center; padding: 20px;}
+    </style>
+</head>
+<body>
+
+    <div class="header-bar">
+        <div class="info-inputs">
+            <input type="text" id="studentName" placeholder="Nhập Họ và Tên" required>
+            <input type="text" id="studentClass" placeholder="Nhập Lớp" required>
+            <button class="btn-start" id="btnStart" onclick="startExercise()">Bắt đầu làm bài</button>
+            <button class="btn-save" id="btnSave" onclick="saveExercise()">Nộp bài & Lưu điểm</button>
+            <button class="btn-qr" onclick="showQRCode()">Tạo Mã QR</button>
+        </div>
+        <div class="timer" id="timerDisplay">⏱ Thời gian: 00:00</div>
+    </div>
+
+    <div class="main-container">
+        <div class="zone" id="left-zone">
+            <h3 style="color: #1e88e5;">Khu vực Đề bài</h3>
+            <div class="draggable-item" draggable="true" ondragstart="drag(event)" onclick="moveToWorkspace(this.id)" id="bai1">
+                <strong>Bài 1:</strong> Trong giờ thực hành Hóa phân tích, sau khi pha dung dịch NaOH, Hà tiến hành chuẩn độ để xác định hệ số hiệu chỉnh của dung dịch NaOH, thu được kết quả như sau: Chuẩn độ 10,0 ml dung dịch HCl 0,1N (K = 1,020) dùng hết 8,5 ml dung dịch NaOH vừa pha.
+                <br>Theo em, Hà cần làm gì để điều chỉnh 50 ml NaOH pha về nồng độ đúng 0,1N?
+            </div>
+            <div class="draggable-item" draggable="true" ondragstart="drag(event)" onclick="moveToWorkspace(this.id)" id="bai2">
+                <strong>Bài 2.</strong> Trong giờ thực hành Hóa phân tích, sau khi pha dung dịch AgNO3, Ngân tiến hành chuẩn độ để xác định hệ số hiệu chỉnh của dung dịch AgNO3, thu được kết quả như sau: Chuẩn độ 0,1200 gam chất gốc NaCl dùng hết 23,0 ml dung dịch AgNO3.
+                <br>Theo em, Ngân cần làm gì để điều chỉnh 50 ml dung dịch AgNO3 pha về nồng độ đúng 0,1N?
+                <br><em>(Cho nguyên tử khối Ag = 108, N = 14, O = 16, Na = 23, Cl = 35,5)</em>
+            </div>
+        </div>
+
+        <div class="zone" id="middle-zone" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
+            <div id="overlay">Vui lòng nhập thông tin và bấm Bắt đầu để tính giờ!</div>
+            <h3 style="color: #f57f17;">Khu vực Làm bài</h3>
+            <div style="text-align: center; color: #777; font-size: 14px; margin-top: -10px; margin-bottom: 10px;">
+                (Click hoặc Kéo thả Đề bài, Công thức, Text vào đây)
+            </div>
+            <div id="workspace" style="display: flex; flex-direction: column; gap: 10px;"></div>
+            <button class="btn-clear" onclick="clearWorkspace()">Xóa toàn bộ làm lại</button>
+        </div>
+
+        <div class="zone" id="right-zone">
+            <h3 style="color: #43a047;">Khu vực Công thức / Text</h3>
+            <div class="draggable-item" draggable="true" ondragstart="drag(event)" onclick="moveToWorkspace(this.id)" id="text1">Áp dụng công thức</div>
+            <div class="draggable-item" draggable="true" ondragstart="drag(event)" onclick="moveToWorkspace(this.id)" id="ct_k1">K=K0.V0/V</div>
+            <div class="draggable-item" draggable="true" ondragstart="drag(event)" onclick="moveToWorkspace(this.id)" id="ct_k2">K=a/V.T</div>
+            <div class="draggable-item" draggable="true" ondragstart="drag(event)" onclick="moveToWorkspace(this.id)" id="ct_vn">Vnước = (K-1.000).Vđc</div>
+            <div class="draggable-item" draggable="true" ondragstart="drag(event)" onclick="moveToWorkspace(this.id)" id="ct_mhc">mhc = (1.000-K).NLT.E.Vđc/1000</div>
+        </div>
+    </div>
+
+    <div class="history-section">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <h3 style="color: #37474f; margin: 0; border: none;">Lịch Sử Làm Bài (Cập nhật tự động)</h3>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-start" onclick="fetchDataFromBackend()" style="background-color: #1976d2;">🔄 Làm mới dữ liệu</button>
+                <button class="btn-delete-history" onclick="clearAllHistory()">Xóa toàn bộ dữ liệu</button>
+            </div>
+        </div>
+        <table class="history-table">
+            <thead>
+                <tr>
+                    <th>STT</th>
+                    <th>Họ và Tên</th>
+                    <th>Lớp</th>
+                    <th>Thời gian hoàn thành</th>
+                    <th>Điểm số</th>
+                    <th>Ngày làm bài</th>
+                </tr>
+            </thead>
+            <tbody id="historyBody">
+                </tbody>
+        </table>
+    </div>
+
+    <div id="qrModal">
+        <div class="qr-content">
+            <h2 style="color: #1e88e5; margin-top: 0;">Quét mã để làm bài</h2>
+            <p style="color: #555; font-size: 14px;">Học sinh sử dụng Camera hoặc Zalo để quét</p>
+            <img id="qrImage" src="" alt="Mã QR" width="200" height="200">
+            <br>
+            <button class="btn-close-qr" onclick="closeQRCode()">Đóng</button>
+        </div>
+    </div>
+
+    <script>
+        // --- CẤU HÌNH API BACKEND (ĐỂ ĐỒNG BỘ TỪ NHIỀU ĐIỆN THOẠI) ---
+        // Bro sẽ thay link Google App Script của bro vào biến này sau.
+        // Tạm thời để trống, hệ thống sẽ tự động lưu vào LocalStorage để test.
+        const GOOGLE_SHEET_API_URL = "https://script.google.com/macros/s/AKfycby8NjAiXk7k3C5h564D5WfLlyAL32AlRxSA69C5Vr17xXHgHooZU3Zr-n0jlRitNCo/exec"; 
+
+        let formCounter = 0;
+        let isStarted = false;
+        let timerInterval;
+        let secondsElapsed = 0;
+
+        // --- HÀM TẠO QR CODE ---
+        function showQRCode() {
+            // Lấy URL hiện tại của trang web (Link Github Pages sau khi up lên)
+            const currentUrl = window.location.href; 
+            // Gọi API tạo QR code miễn phí từ mã nguồn mở
+            const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(currentUrl)}`;
+            
+            document.getElementById("qrImage").src = qrApiUrl;
+            document.getElementById("qrModal").style.display = "flex";
+        }
+
+        function closeQRCode() {
+            document.getElementById("qrModal").style.display = "none";
+        }
+
+        // --- CÁC HÀM XỬ LÝ THỜI GIAN & THÔNG TIN ---
+        function startExercise() {
+            const name = document.getElementById("studentName").value.trim();
+            const cls = document.getElementById("studentClass").value.trim();
+            
+            if (!name || !cls) {
+                alert("Vui lòng điền đầy đủ Họ tên và Lớp trước khi làm bài!");
+                return;
+            }
+
+            isStarted = true;
+            document.getElementById("studentName").disabled = true;
+            document.getElementById("studentClass").disabled = true;
+            document.getElementById("btnStart").style.display = "none";
+            document.getElementById("btnSave").style.display = "inline-block";
+            document.getElementById("overlay").style.display = "none";
+
+            secondsElapsed = 0;
+            timerInterval = setInterval(() => {
+                secondsElapsed++;
+                const m = String(Math.floor(secondsElapsed / 60)).padStart(2, '0');
+                const s = String(secondsElapsed % 60).padStart(2, '0');
+                document.getElementById("timerDisplay").innerText = `⏱ Thời gian: ${m}:${s}`;
+            }, 1000);
+        }
+
+        async function saveExercise() {
+            if (!isStarted) return;
+            
+            clearInterval(timerInterval);
+            isStarted = false;
+            
+            // Tính điểm
+            const workspace = document.getElementById("workspace");
+            const correctSteps = workspace.querySelectorAll('.success').length;
+            const score = correctSteps * 10; 
+
+            const name = document.getElementById("studentName").value;
+            const cls = document.getElementById("studentClass").value;
+            const timeStr = document.getElementById("timerDisplay").innerText.replace("⏱ Thời gian: ", "");
+            const dateStr = new Date().toLocaleString("vi-VN");
+
+            const studentData = { name: name, class: cls, time: timeStr, score: score, date: dateStr };
+
+            // Hiển thị thông báo đang lưu
+            document.getElementById("btnSave").innerText = "Đang gửi bài...";
+            document.getElementById("btnSave").disabled = true;
+
+            // Xử lý lưu trữ
+            if (GOOGLE_SHEET_API_URL !== "") {
+                // Nếu đã setup Google Sheet -> Bắn data lên mạng
+                try {
+                    await fetch(GOOGLE_SHEET_API_URL, {
+                        method: "POST",
+                        mode: "no-cors",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(studentData)
+                    });
+                } catch (e) {
+                    console.error("Lỗi khi gửi dữ liệu:", e);
+                }
+            } else {
+                // Nếu chưa có link API -> Lưu tạm trên máy cục bộ (LocalStorage)
+                let historyData = JSON.parse(localStorage.getItem("labHistory")) || [];
+                historyData.push(studentData);
+                localStorage.setItem("labHistory", JSON.stringify(historyData));
+            }
+
+            alert(`Chúc mừng bạn đã hoàn thành bài thi!\nThời gian: ${timeStr}\nĐiểm số: ${score} điểm.`);
+            
+            // Reset UI
+            document.getElementById("studentName").disabled = false;
+            document.getElementById("studentClass").disabled = false;
+            document.getElementById("studentName").value = "";
+            document.getElementById("studentClass").value = "";
+            document.getElementById("btnStart").style.display = "inline-block";
+            document.getElementById("btnSave").style.display = "none";
+            document.getElementById("btnSave").innerText = "Nộp bài & Lưu điểm";
+            document.getElementById("btnSave").disabled = false;
+            document.getElementById("overlay").style.display = "flex";
+            document.getElementById("timerDisplay").innerText = "⏱ Thời gian: 00:00";
+            clearWorkspace();
+            fetchDataFromBackend();
+        }
+
+        // --- HÀM TẢI LỊCH SỬ ---
+        async function fetchDataFromBackend() {
+            const historyBody = document.getElementById("historyBody");
+            historyBody.innerHTML = "<tr><td colspan='6' style='color:#777;'>Đang tải dữ liệu...</td></tr>";
+
+            let historyData = [];
+
+            if (GOOGLE_SHEET_API_URL !== "") {
+                // Tải dữ liệu từ Google Sheet (Cần thiết lập API GET)
+                try {
+                    const response = await fetch(GOOGLE_SHEET_API_URL);
+                    historyData = await response.json();
+                } catch (e) {
+                    historyData = JSON.parse(localStorage.getItem("labHistory")) || [];
+                }
+            } else {
+                historyData = JSON.parse(localStorage.getItem("labHistory")) || [];
+            }
+            
+            historyBody.innerHTML = "";
+            if(historyData.length === 0) {
+                historyBody.innerHTML = `<tr><td colspan="6" style="color: #777;">Chưa có dữ liệu làm bài</td></tr>`;
+                return;
+            }
+
+            // Đảo ngược để người mới làm bài sẽ hiện lên trên cùng
+            historyData.reverse().forEach((item, index) => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td><strong>${item.name}</strong></td>
+                    <td>${item.class}</td>
+                    <td style="color:#d32f2f; font-weight:bold;">${item.time}</td>
+                    <td style="color:#2e7d32; font-weight:bold;">${item.score} đ</td>
+                    <td>${item.date}</td>
+                `;
+                historyBody.appendChild(tr);
+            });
+        }
+
+        function clearAllHistory() {
+            if(confirm("Xóa lịch sử trên máy này? (Nếu dùng Google Sheet, bạn phải tự vào file Sheet để xóa)")) {
+                localStorage.removeItem("labHistory");
+                fetchDataFromBackend();
+            }
+        }
+
+        // --- CÁC HÀM XỬ LÝ KÉO THẢ & CLICK ---
+        function allowDrop(ev) { ev.preventDefault(); ev.currentTarget.classList.add("drag-over"); }
+        function dragLeave(ev) { ev.currentTarget.classList.remove("drag-over"); }
+        function drag(ev) { ev.dataTransfer.setData("text", ev.target.id); }
+
+        function drop(ev) {
+            ev.preventDefault();
+            ev.currentTarget.classList.remove("drag-over");
+            const dataId = ev.dataTransfer.getData("text");
+            if (ev.currentTarget.id === "middle-zone") moveToWorkspace(dataId);
+        }
+
+        function moveToWorkspace(dataId) {
+            if (!isStarted && dataId.startsWith("ct_") || !isStarted && dataId.startsWith("bai") || !isStarted && dataId.startsWith("text")) {
+                alert("Bạn cần nhập thông tin và Bấm Bắt đầu mới có thể làm bài!");
+                return;
+            }
+
+            const draggedElement = document.getElementById(dataId);
+            const workspace = document.getElementById("workspace");
+
+            if (draggedElement) {
+                const clone = draggedElement.cloneNode(true);
+                clone.removeAttribute("draggable");
+                clone.removeAttribute("onclick");
+                clone.style.cursor = "default";
+                clone.style.border = "2px solid #1e88e5"; 
+                workspace.appendChild(clone);
+
+                formCounter++;
+                if (dataId === "ct_k1") showFormK1(workspace, formCounter);
+                if (dataId === "ct_k2") showFormK2(workspace, formCounter);
+            }
+        }
+
+        function showFormK1(container, id) {
+            const formHtml = `
+                <div class="input-form">
+                    <div class="input-row"><label>K0 = </label><input type="number" step="any" id="k0_${id}" oninput="validateK1(${id})"></div>
+                    <div class="input-row"><label>V0 = </label><input type="number" step="any" id="v0_${id}" oninput="validateK1(${id})"></div>
+                    <div class="input-row"><label>V = </label><input type="number" step="any" id="v_${id}" oninput="validateK1(${id})"></div>
+                    <div id="msg1_${id}"></div>
+                    <div class="result-box" id="resBox1_${id}" style="display:none;">=> K = <span id="resK1_${id}"></span></div>
+                    ${generateSubSteps(id)}
+                </div>`;
+            container.insertAdjacentHTML('beforeend', formHtml);
+        }
+
+        function validateK1(id) {
+            const k0 = parseFloat(document.getElementById(`k0_${id}`).value);
+            const v0 = parseFloat(document.getElementById(`v0_${id}`).value);
+            const v = parseFloat(document.getElementById(`v_${id}`).value);
+            const msgBox = document.getElementById(`msg1_${id}`);
+            const resBox = document.getElementById(`resBox1_${id}`);
+            const resSpan = document.getElementById(`resK1_${id}`);
+            const subSteps = document.getElementById(`subSteps_${id}`);
+
+            if (isNaN(k0) || isNaN(v0) || isNaN(v)) { msgBox.innerHTML = ""; return; }
+
+            if (k0 === 1.020 && v0 === 10 && v === 8.5) {
+                const k = (k0 * v0) / v;
+                msgBox.innerHTML = `<div class="success"><span style="font-size: 18px;">😊</span> Hoan hô, bạn làm chính xác!</div>`;
+                resSpan.innerText = k.toFixed(4);
+                resBox.style.display = "block";
+                subSteps.style.display = "block";
+                document.getElementById(`subSteps_${id}`).setAttribute("data-k", k);
+            } else {
+                msgBox.innerHTML = `<div class="error"><span style="font-size: 18px;">😢</span> Bạn đã nhập sai dữ liệu, hãy thử lại nha!</div>`;
+                resBox.style.display = "none";
+                subSteps.style.display = "none";
+            }
+        }
+
+        function showFormK2(container, id) {
+            const formHtml = `
+                <div class="input-form">
+                    <div class="input-row"><label>a = </label><input type="number" step="any" id="a_${id}" oninput="validateK2(${id})"></div>
+                    <div class="input-row"><label>V = </label><input type="number" step="any" id="v2_${id}" oninput="validateK2(${id})"></div>
+                    <div class="input-row"><label>T = </label><input type="number" step="any" id="t_${id}" oninput="validateK2(${id})"></div>
+                    <div id="msg2_${id}"></div>
+                    <div class="result-box" id="resBox2_${id}" style="display:none;">=> K = <span id="resK2_${id}"></span></div>
+                    ${generateSubSteps(id)}
+                </div>`;
+            container.insertAdjacentHTML('beforeend', formHtml);
+        }
+
+        function validateK2(id) {
+            const a = parseFloat(document.getElementById(`a_${id}`).value);
+            const v = parseFloat(document.getElementById(`v2_${id}`).value);
+            const t = parseFloat(document.getElementById(`t_${id}`).value);
+            const msgBox = document.getElementById(`msg2_${id}`);
+            const resBox = document.getElementById(`resBox2_${id}`);
+            const resSpan = document.getElementById(`resK2_${id}`);
+            const subSteps = document.getElementById(`subSteps_${id}`);
+
+            if (isNaN(a) || isNaN(v) || isNaN(t)) { msgBox.innerHTML = ""; return; }
+
+            if (a === 0.1200 && v === 23 && t === 0.00585) {
+                const k = a / (v * t);
+                msgBox.innerHTML = `<div class="success"><span style="font-size: 18px;">😊</span> Hoan hô, bạn làm chính xác!</div>`;
+                resSpan.innerText = k.toFixed(4);
+                resBox.style.display = "block";
+                subSteps.style.display = "block";
+                document.getElementById(`subSteps_${id}`).setAttribute("data-k", k);
+            } else {
+                msgBox.innerHTML = `<div class="error"><span style="font-size: 18px;">😢</span> Bạn đã nhập sai dữ liệu, hãy thử lại nha!</div>`;
+                resBox.style.display = "none";
+                subSteps.style.display = "none";
+            }
+        }
+
+        function generateSubSteps(id) {
+            return `
+            <div class="sub-steps" id="subSteps_${id}">
+                <div style="margin-bottom:10px;">
+                    <b>K</b> <input type="text" id="cmp_${id}" style="width:40px; text-align:center;"> <b>1.000</b>
+                </div>
+                <div>
+                    <b>Vậy cần điều chỉnh bằng cách thêm</b> 
+                    <input type="text" id="addTxt_${id}" oninput="validateAddText(${id})" style="width:120px;">
+                </div>
+                <div id="msgTxt_${id}"></div>
+                <div class="sub-dropzone" id="subDrop_${id}" ondrop="dropSub(event, ${id})" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
+                    (Kéo công thức Vnước hoặc mhc vào đây)
+                </div>
+            </div>`;
+        }
+
+        function validateAddText(id) {
+            const txt = document.getElementById(`addTxt_${id}`).value.trim().toLowerCase();
+            const msgBox = document.getElementById(`msgTxt_${id}`);
+            const k = parseFloat(document.getElementById(`subSteps_${id}`).getAttribute("data-k"));
+            if (!txt) { msgBox.innerHTML = ""; return; }
+
+            const correctWord = (k > 1) ? "nước" : "hóa chất";
+            
+            if (txt === correctWord) {
+                msgBox.innerHTML = `<div class="success"><span style="font-size: 18px;">😊</span> Bạn đã chọn đúng!</div>`;
+            } else {
+                msgBox.innerHTML = `<div class="error"><span style="font-size: 18px;">😢</span> Sai rồi, cần thêm gì nhỉ?</div>`;
+            }
+        }
+
+        function dropSub(ev, id) {
+            ev.preventDefault();
+            ev.stopPropagation(); 
+            ev.currentTarget.classList.remove("drag-over");
+            const dataId = ev.dataTransfer.getData("text");
+            const subDrop = document.getElementById(`subDrop_${id}`);
+
+            if (dataId === "ct_vn") {
+                subDrop.innerHTML = `
+                    <div style="color:#000; text-align:left; font-style:normal;">
+                        <div style="margin-bottom:10px; font-weight:bold; color:#d32f2f;">Vnước = (K - 1.000).Vđc</div>
+                        <div class="input-row"><label>K = </label><input type="number" step="any" id="vnK_${id}" oninput="calcVn(${id})"></div>
+                        <div class="input-row"><label>Vđc = </label><input type="number" step="any" id="vnVdc_${id}" oninput="calcVn(${id})"></div>
+                        <div class="result-box">=> Vnước = <span id="resVn_${id}">...</span></div>
+                        <div id="msgVn_${id}"></div>
+                    </div>`;
+            } else if (dataId === "ct_mhc") {
+                subDrop.innerHTML = `
+                    <div style="color:#000; text-align:left; font-style:normal;">
+                        <div style="margin-bottom:10px; font-weight:bold; color:#d32f2f;">mhc = (1.000 - K).NLT.E.Vđc / 1000</div>
+                        <div class="input-row"><label>K = </label><input type="number" step="any" id="mK_${id}" oninput="calcMhc(${id})"></div>
+                        <div class="input-row"><label>Vđc = </label><input type="number" step="any" id="mVdc_${id}" oninput="calcMhc(${id})"></div>
+                        <div class="input-row"><label>E = </label><input type="number" step="any" id="mE_${id}" oninput="calcMhc(${id})"></div>
+                        <div class="input-row"><label>NLT = </label><input type="number" step="any" id="mNlt_${id}" oninput="calcMhc(${id})"></div>
+                        <div class="result-box">=> mhc = <span id="resMhc_${id}">...</span></div>
+                        <div id="msgMhc_${id}"></div>
+                    </div>`;
+            }
+        }
+
+        function calcVn(id) {
+            const k = parseFloat(document.getElementById(`vnK_${id}`).value);
+            const vdc = parseFloat(document.getElementById(`vnVdc_${id}`).value);
+            const resSpan = document.getElementById(`resVn_${id}`);
+            const msgBox = document.getElementById(`msgVn_${id}`);
+
+            if (isNaN(k) || isNaN(vdc)) return;
+
+            const vn = (k - 1) * vdc;
+            resSpan.innerText = vn.toFixed(3);
+
+            if (Math.abs(vn - 10) < 0.001) {
+                msgBox.innerHTML = `<div class="success"><span style="font-size: 18px;">😊</span> Xin chúc mừng, kết quả chính xác!</div>`;
+            } else {
+                msgBox.innerHTML = `<div class="error"><span style="font-size: 18px;">😢</span> Chưa đúng rồi, hãy tính toán lại nhé!</div>`;
+            }
+        }
+
+        function calcMhc(id) {
+            const k = parseFloat(document.getElementById(`mK_${id}`).value);
+            const vdc = parseFloat(document.getElementById(`mVdc_${id}`).value);
+            const e = parseFloat(document.getElementById(`mE_${id}`).value);
+            const nlt = parseFloat(document.getElementById(`mNlt_${id}`).value);
+            const resSpan = document.getElementById(`resMhc_${id}`);
+            const msgBox = document.getElementById(`msgMhc_${id}`);
+
+            if (isNaN(k) || isNaN(vdc) || isNaN(e) || isNaN(nlt)) return;
+
+            const mhc = ((1 - k) * nlt * e * vdc) / 1000;
+            resSpan.innerText = mhc.toFixed(5);
+
+            if (Math.abs(mhc - 0.08748) < 0.00001) {
+                msgBox.innerHTML = `<div class="success"><span style="font-size: 18px;">😊</span> Xin chúc mừng, kết quả chính xác!</div>`;
+            } else {
+                msgBox.innerHTML = `<div class="error"><span style="font-size: 18px;">😢</span> Chưa đúng rồi, hãy tính toán lại nhé!</div>`;
+            }
+        }
+
+        function clearWorkspace() {
+            document.getElementById("workspace").innerHTML = "";
+            formCounter = 0;
+        }
+
+        // Tải lịch sử khi mở trang web
+        window.onload = fetchDataFromBackend;
+    </script>
+</body>
+</html>
