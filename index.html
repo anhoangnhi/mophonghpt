@@ -528,7 +528,7 @@
             const k = parseFloat(document.getElementById(`subSteps_${id}`).getAttribute("data-k"));
             if (!txt) { msgBox.innerHTML = ""; return; }
 
-            const correctWord = (k > 1) ? "nước" : "hóa chất";
+            const correctWord = (k > 1) ? "nước" : "hóa chất" : "hoá chất";
             
             if (txt === correctWord) {
                 msgBox.innerHTML = `<div class="success"><span style="font-size: 18px;">😊</span> Bạn đã chọn đúng!</div>`;
