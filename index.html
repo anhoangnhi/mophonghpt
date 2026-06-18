@@ -137,8 +137,6 @@
             padding: 25px; 
             margin-top: 10px; 
             box-shadow: var(--shadow-md); 
-            
-            /* Kích hoạt tính năng thay đổi chiều cao (Resize) */
             display: none; 
             overflow: auto; 
             resize: vertical; 
@@ -149,8 +147,6 @@
         
         .history-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 15px; min-width: 700px; font-size: 15px;}
         .history-table th, .history-table td { border-bottom: 1px solid var(--border-light); padding: 12px 15px; text-align: center; }
-        
-        /* Gim thanh tiêu đề bảng */
         .history-table th { 
             background-color: #f8fafc; 
             color: var(--text-main); 
@@ -250,7 +246,7 @@
 
     <div class="history-section" id="adminHistorySection">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
-            <h3 style="color: var(--text-main); margin: 0; border: none; font-size: 1.2rem; text-transform: uppercase;">Lịch Sử Làm Bài</h3>
+            <h3 style="color: var(--text-main); margin: 0; border: none; font-size: 1.2rem; text-transform: uppercase;">Lịch Sử Làm Bài Của Học Sinh</h3>
             <div style="display: flex; gap: 10px;">
                 <button class="btn-start" onclick="fetchDataFromBackend()">🔄 Làm mới</button>
                 <button class="btn-delete-history" onclick="clearAllHistory()">🗑️ Xóa DL Máy Này</button>
@@ -472,7 +468,6 @@
 
             historyData.reverse().forEach((item, index) => {
                 let displayTime = item.time;
-                // Bắt lỗi dữ liệu cũ hiển thị dạng 1899-12-29T...
                 if (typeof displayTime === 'string' && displayTime.includes('1899')) {
                     displayTime = "Lỗi định dạng cũ";
                 }
@@ -682,6 +677,8 @@
             }
         }
 
+        // --- CẬP NHẬT KIỂM TRA TỪNG THÔNG SỐ VÀ BÁO LỖI THÔNG MINH ---
+
         function calcVn(id) {
             const k = parseFloat(document.getElementById(`vnK_${id}`).value);
             const vdc = parseFloat(document.getElementById(`vnVdc_${id}`).value);
@@ -693,10 +690,20 @@
             const vn = (k - 1) * vdc;
             resSpan.innerText = vn.toFixed(3);
 
-            if (Math.abs(vn - 10) < 0.001) {
+            // Kiểm tra từng biến số (Bài 1: K = 1.2, Vđc = 50)
+            const isKValid = Math.abs(k - 1.2) < 0.01;
+            const isVdcValid = vdc === 50;
+
+            if (isKValid && isVdcValid) {
                 msgBox.innerHTML = `<div class="success"><span style="font-size: 20px;">🏆</span> Tuyệt vời! Bạn đã hoàn thành bài toán!</div>`;
             } else {
-                msgBox.innerHTML = `<div class="error"><span style="font-size: 20px;">⚠️</span> Đáp án chưa đúng, thử tính lại nhé!</div>`;
+                let errorMsg = "Đáp án chưa đúng, hãy kiểm tra lại nhé!";
+                if (!isVdcValid) {
+                    errorMsg = "Thể tích điều chỉnh (Vđc) chưa đúng, đề bài yêu cầu điều chỉnh bao nhiêu ml?";
+                } else if (!isKValid) {
+                    errorMsg = "Hệ số K bạn nhập chưa khớp với kết quả ở trên!";
+                }
+                msgBox.innerHTML = `<div class="error"><span style="font-size: 20px;">⚠️</span> ${errorMsg}</div>`;
             }
         }
 
@@ -713,10 +720,26 @@
             const mhc = ((1 - k) * nlt * e * vdc) / 1000;
             resSpan.innerText = mhc.toFixed(5);
 
-            if (Math.abs(mhc - 0.08748) < 0.00001) {
+            // Kiểm tra từng biến số (Bài 2: K khoảng 0.8919, Vđc = 50, E = 170, NLT = 0.1)
+            const isKValid = Math.abs(k - 0.8919) < 0.005;
+            const isVdcValid = vdc === 50;
+            const isEValid = e === 170;
+            const isNltValid = nlt === 0.1;
+
+            if (isKValid && isVdcValid && isEValid && isNltValid) {
                 msgBox.innerHTML = `<div class="success"><span style="font-size: 20px;">🏆</span> Tuyệt vời! Bạn đã hoàn thành bài toán!</div>`;
             } else {
-                msgBox.innerHTML = `<div class="error"><span style="font-size: 20px;">⚠️</span> Đáp án chưa đúng, thử tính lại nhé!</div>`;
+                let errorMsg = "Đáp án chưa đúng, hãy kiểm tra lại nhé!";
+                if (!isEValid) {
+                    errorMsg = "Phân tử khối (E) của AgNO3 chưa đúng. Gợi ý: Ag=108, N=14, O=16 nhé!";
+                } else if (!isVdcValid) {
+                    errorMsg = "Thể tích điều chỉnh (Vđc) chưa đúng, đề bài yêu cầu điều chỉnh bao nhiêu ml?";
+                } else if (!isNltValid) {
+                    errorMsg = "Nồng độ lý thuyết (NLT) chưa đúng!";
+                } else if (!isKValid) {
+                    errorMsg = "Hệ số K bạn nhập chưa khớp với kết quả ở trên!";
+                }
+                msgBox.innerHTML = `<div class="error"><span style="font-size: 20px;">⚠️</span> ${errorMsg}</div>`;
             }
         }
 
