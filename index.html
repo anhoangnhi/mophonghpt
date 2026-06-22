@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Phần mềm Mô phỏng Hóa Phân tích</title>
-    <!-- Thêm font chữ Inter hiện đại từ Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
@@ -72,7 +71,11 @@
         .timer { font-size: 18px; font-weight: 700; color: var(--danger); background: #fef2f2; padding: 8px 20px; border-radius: var(--radius-md); border: 1px solid #fecaca; display: flex; align-items: center; gap: 5px;}
 
         /* KHU VỰC CHÍNH */
-        .main-container { display: flex; flex: 1; gap: 20px; flex-wrap: wrap; }
+        .main-container { 
+            display: flex; flex: 1; gap: 20px; flex-wrap: wrap; 
+            align-items: flex-start; /* QUAN TRỌNG: Cần thiết để 2 cột bên có thể trượt dính */
+        }
+        
         .zone { 
             flex: 1; min-width: 320px; border-radius: var(--radius-lg); padding: 25px; 
             overflow-y: auto; display: flex; flex-direction: column; gap: 15px; 
@@ -81,9 +84,25 @@
         .zone h3 { text-align: center; margin-top: 0; margin-bottom: 5px; padding-bottom: 15px; border-bottom: 2px dashed var(--border-light); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; font-size: 1.1rem;}
         
         #left-zone h3 { color: var(--primary); }
-        #middle-zone { flex: 1.5; box-shadow: 0 0 20px rgba(245, 158, 11, 0.1); border-top: 4px solid var(--secondary); position: relative;}
+        
+        /* Cập nhật Khu vực giữa để luôn đảm bảo đủ độ dài */
+        #middle-zone { 
+            flex: 1.5; box-shadow: 0 0 20px rgba(245, 158, 11, 0.1); 
+            border-top: 4px solid var(--secondary); position: relative;
+            min-height: calc(100vh - 120px); 
+        }
         #middle-zone h3 { color: var(--secondary); }
         #right-zone h3 { color: var(--success); }
+
+        /* KÍCH HOẠT TÍNH NĂNG TRƯỢT BÁM DÍNH (STICKY) CHO 2 CỘT BÊN */
+        @media (min-width: 992px) {
+            #left-zone, #right-zone {
+                position: sticky;
+                top: 20px; /* Cột sẽ dừng lại cách mép trên 20px */
+                max-height: calc(100vh - 40px); /* Giới hạn chiều cao để không bị mất nội dung phía dưới */
+                overflow-y: auto; /* Bật thanh cuộn riêng nếu nội dung bên trong quá dài */
+            }
+        }
 
         /* ITEM KÉO THẢ / CLICK */
         .draggable-item { 
@@ -307,12 +326,12 @@
         // CẤU HÌNH NHẠC CHO KHU VỰC ADMIN
         // ==========================================
         const adminBgMusic = new Audio('background_music.mp3'); 
-        adminBgMusic.loop = true;  // Lặp lại liên tục
-        adminBgMusic.volume = 0.4; // Âm lượng 40%
+        adminBgMusic.loop = true;  
+        adminBgMusic.volume = 0.4; 
 
         const adminWarningSound = new Audio('dem_nguoc.mp3'); 
         adminWarningSound.loop = true; 
-        adminWarningSound.volume = 0.8; // Âm lượng 80%
+        adminWarningSound.volume = 0.8; 
         // ==========================================
 
         // --- HÀM ĐẾM NGƯỢC CHO ADMIN ---
