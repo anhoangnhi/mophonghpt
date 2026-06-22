@@ -61,7 +61,7 @@
         .btn-save { padding: 10px 20px; background-color: var(--primary); color: white; border: none; border-radius: var(--radius-md); cursor: pointer; font-weight: 600; display: none; box-shadow: var(--shadow-sm);}
         .btn-save:hover { background-color: var(--primary-hover); transform: translateY(-1px); box-shadow: var(--shadow-md);}
         
-        /* NÚT ADMIN & QR (Mặc định ẩn) */
+        /* NÚT ADMIN & QR */
         .admin-controls { display: flex; gap: 12px; align-items: center; }
         .btn-admin { padding: 10px 15px; background-color: var(--text-light); color: white; border: none; border-radius: var(--radius-md); cursor: pointer; font-weight: 600; box-shadow: var(--shadow-sm);}
         .btn-admin:hover { background-color: var(--text-main); }
@@ -193,13 +193,19 @@
 <body>
 
     <div class="header-bar">
-        <div class="info-inputs">
+        <div class="info-inputs" id="studentInfoInputs">
             <input type="text" id="studentName" placeholder="👤 Nhập Họ và Tên" required>
             <input type="text" id="studentClass" placeholder="🏫 Nhập Lớp" required>
             <button class="btn-start" id="btnStart" onclick="startExercise()">Bắt đầu làm bài</button>
             <button class="btn-save" id="btnSave" onclick="saveExercise()">Nộp bài & Lưu điểm</button>
         </div>
         
+        <div id="adminCountdownContainer" style="display: none; flex: 1; justify-content: center; align-items: center; gap: 15px;">
+            <div class="timer" id="adminCountdownDisplay" style="background: #e0f2fe; color: #1d4ed8; border: 2px solid #bfdbfe; font-size: 24px; padding: 10px 30px;">⏱ 03:00</div>
+            <button class="btn-start" id="btnAdminTimerStart" onclick="startAdminCountdown()" style="background-color: #f59e0b; font-size: 16px; padding: 12px 20px;">▶ Bắt đầu (3 phút)</button>
+            <button class="btn-start" id="btnAdminTimerStop" onclick="stopAdminCountdown()" style="background-color: #ef4444; font-size: 16px; padding: 12px 20px; display: none;">⏹ Dừng / Reset</button>
+        </div>
+
         <div class="admin-controls">
             <button class="btn-qr" id="btnShowQR" onclick="showQRCode()">📷 Mã QR</button>
             <div class="timer" id="timerDisplay">⏱ 00:00</div>
@@ -287,17 +293,74 @@
         let isAdminLoggedIn = false;
         let formCounter = 0;
         let isStarted = false;
+        
+        // Timer học sinh
         let timerInterval;
         let secondsElapsed = 0;
+
+        // Timer đếm ngược Admin
+        let adminCountdownInterval;
+        let adminTimeLeft = 180; // 3 phút
+
+        // --- HÀM ĐẾM NGƯỢC CHO ADMIN ---
+        function startAdminCountdown() {
+            clearInterval(adminCountdownInterval);
+            adminTimeLeft = 180;
+            
+            document.getElementById("adminCountdownDisplay").innerText = "⏱ 03:00";
+            document.getElementById("adminCountdownDisplay").style.color = "#1d4ed8";
+            document.getElementById("adminCountdownDisplay").style.background = "#e0f2fe";
+            document.getElementById("adminCountdownDisplay").style.borderColor = "#bfdbfe";
+
+            document.getElementById("btnAdminTimerStart").style.display = "none";
+            document.getElementById("btnAdminTimerStop").style.display = "inline-block";
+
+            adminCountdownInterval = setInterval(() => {
+                adminTimeLeft--;
+                
+                // Đổi màu cảnh báo 30 giây cuối
+                if (adminTimeLeft <= 30 && adminTimeLeft > 0) {
+                    document.getElementById("adminCountdownDisplay").style.color = "#dc2626";
+                    document.getElementById("adminCountdownDisplay").style.background = "#fee2e2";
+                    document.getElementById("adminCountdownDisplay").style.borderColor = "#fecaca";
+                }
+
+                if (adminTimeLeft <= 0) {
+                    stopAdminCountdown();
+                    document.getElementById("adminCountdownDisplay").innerText = "⏱ 00:00";
+                    alert("⏰ ĐÃ HẾT 3 PHÚT LÀM BÀI!");
+                    return;
+                }
+
+                const m = String(Math.floor(adminTimeLeft / 60)).padStart(2, '0');
+                const s = String(adminTimeLeft % 60).padStart(2, '0');
+                document.getElementById("adminCountdownDisplay").innerText = `⏱ ${m}:${s}`;
+            }, 1000);
+        }
+
+        function stopAdminCountdown() {
+            clearInterval(adminCountdownInterval);
+            document.getElementById("btnAdminTimerStart").style.display = "inline-block";
+            document.getElementById("btnAdminTimerStart").innerText = "▶ Bấm lại (3 phút)";
+            document.getElementById("btnAdminTimerStop").style.display = "none";
+        }
 
         // --- HÀM XỬ LÝ ĐĂNG NHẬP ADMIN AN TOÀN ---
         async function toggleAdmin() {
             if (isAdminLoggedIn) {
+                // Thoát Admin
                 isAdminLoggedIn = false;
                 document.getElementById("btnAdminLogin").innerHTML = "⚙️ Admin";
                 document.getElementById("btnAdminLogin").style.backgroundColor = ""; 
                 document.getElementById("btnShowQR").style.display = "none";
                 document.getElementById("adminHistorySection").style.display = "none";
+                
+                // Khôi phục giao diện học sinh
+                document.getElementById("studentInfoInputs").style.display = "flex";
+                document.getElementById("timerDisplay").style.display = "flex";
+                document.getElementById("adminCountdownContainer").style.display = "none";
+                stopAdminCountdown(); // Reset đồng hồ admin nếu đang chạy
+
             } else {
                 const pass = prompt("Vui lòng nhập mật khẩu Admin:");
                 if (!pass) return;
@@ -314,6 +377,15 @@
                         document.getElementById("btnAdminLogin").style.backgroundColor = "var(--danger)"; 
                         document.getElementById("btnShowQR").style.display = "inline-block";
                         document.getElementById("adminHistorySection").style.display = "block";
+                        
+                        // Chuyển sang giao diện đếm ngược của Admin
+                        document.getElementById("studentInfoInputs").style.display = "none";
+                        document.getElementById("timerDisplay").style.display = "none";
+                        document.getElementById("adminCountdownContainer").style.display = "flex";
+                        document.getElementById("adminCountdownDisplay").innerText = "⏱ 03:00";
+                        document.getElementById("adminCountdownDisplay").style.color = "#1d4ed8";
+                        document.getElementById("adminCountdownDisplay").style.background = "#e0f2fe";
+                        
                         fetchDataFromBackend(); 
                     } else {
                         alert("Mật khẩu không đúng hoặc chưa cài đặt Sheet 'pass'!");
@@ -345,7 +417,7 @@
             document.getElementById("qrModal").style.display = "none";
         }
 
-        // --- CÁC HÀM XỬ LÝ THỜI GIAN & THÔNG TIN ---
+        // --- CÁC HÀM XỬ LÝ THỜI GIAN & THÔNG TIN HỌC SINH ---
         function startExercise() {
             const name = document.getElementById("studentName").value.trim();
             const cls = document.getElementById("studentClass").value.trim();
@@ -377,21 +449,17 @@
             clearInterval(timerInterval);
             isStarted = false;
             
-            // TÍNH ĐIỂM: Tổng số bước của cả 2 bài là 6 bước
             const workspace = document.getElementById("workspace");
             const correctSteps = workspace.querySelectorAll('.success').length;
             const maxSteps = 6; 
             
             let rawScore = (correctSteps / maxSteps) * 10;
-            if (rawScore > 10) rawScore = 10; // Giới hạn tối đa là 10 điểm
-            
-            // Làm tròn 1 chữ số thập phân (Ví dụ: 8.3)
+            if (rawScore > 10) rawScore = 10; 
             const score = parseFloat(rawScore.toFixed(1)); 
 
             const name = document.getElementById("studentName").value;
             const cls = document.getElementById("studentClass").value;
             
-            // Xử lý chuỗi thời gian để Google Sheet nhận diện là Text thay vì Date
             const timeRaw = document.getElementById("timerDisplay").innerText.replace("⏱ ", "");
             const timeParts = timeRaw.split(":");
             let timeStr = timeRaw;
@@ -677,8 +745,6 @@
             }
         }
 
-        // --- CẬP NHẬT KIỂM TRA TỪNG THÔNG SỐ VÀ BÁO LỖI THÔNG MINH ---
-
         function calcVn(id) {
             const k = parseFloat(document.getElementById(`vnK_${id}`).value);
             const vdc = parseFloat(document.getElementById(`vnVdc_${id}`).value);
@@ -690,7 +756,6 @@
             const vn = (k - 1) * vdc;
             resSpan.innerText = vn.toFixed(3);
 
-            // Kiểm tra từng biến số (Bài 1: K = 1.2, Vđc = 50)
             const isKValid = Math.abs(k - 1.2) < 0.01;
             const isVdcValid = vdc === 50;
 
@@ -720,7 +785,6 @@
             const mhc = ((1 - k) * nlt * e * vdc) / 1000;
             resSpan.innerText = mhc.toFixed(5);
 
-            // Kiểm tra từng biến số (Bài 2: K khoảng 0.8919, Vđc = 50, E = 170, NLT = 0.1)
             const isKValid = Math.abs(k - 0.8919) < 0.005;
             const isVdcValid = vdc === 50;
             const isEValid = e === 170;
