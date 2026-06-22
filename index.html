@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Phần mềm Mô phỏng Hóa Phân tích</title>
+    <!-- Thêm font chữ Inter hiện đại từ Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
@@ -302,11 +303,29 @@
         let adminCountdownInterval;
         let adminTimeLeft = 180; // 3 phút
 
+        // ==========================================
+        // CẤU HÌNH NHẠC CHO KHU VỰC ADMIN
+        // ==========================================
+        const adminBgMusic = new Audio('background_music.mp3'); 
+        adminBgMusic.loop = true;  // Lặp lại liên tục
+        adminBgMusic.volume = 0.4; // Âm lượng 40%
+
+        const adminWarningSound = new Audio('dem_nguoc.mp3'); 
+        adminWarningSound.loop = true; 
+        adminWarningSound.volume = 0.8; // Âm lượng 80%
+        // ==========================================
+
         // --- HÀM ĐẾM NGƯỢC CHO ADMIN ---
         function startAdminCountdown() {
             clearInterval(adminCountdownInterval);
             adminTimeLeft = 180;
             
+            // Khởi động nhạc
+            adminBgMusic.currentTime = 0;
+            adminBgMusic.play().catch(e => console.log("Trình duyệt chặn tự động phát nhạc:", e));
+            adminWarningSound.pause();
+            adminWarningSound.currentTime = 0;
+
             document.getElementById("adminCountdownDisplay").innerText = "⏱ 03:00";
             document.getElementById("adminCountdownDisplay").style.color = "#1d4ed8";
             document.getElementById("adminCountdownDisplay").style.background = "#e0f2fe";
@@ -323,6 +342,13 @@
                     document.getElementById("adminCountdownDisplay").style.color = "#dc2626";
                     document.getElementById("adminCountdownDisplay").style.background = "#fee2e2";
                     document.getElementById("adminCountdownDisplay").style.borderColor = "#fecaca";
+                }
+
+                // Đổi sang nhạc báo động 11 giây cuối
+                if (adminTimeLeft === 11) {
+                    adminBgMusic.pause();
+                    adminWarningSound.currentTime = 0;
+                    adminWarningSound.play().catch(e => console.log("Lỗi phát nhạc 11s:", e));
                 }
 
                 if (adminTimeLeft <= 0) {
@@ -343,6 +369,10 @@
             document.getElementById("btnAdminTimerStart").style.display = "inline-block";
             document.getElementById("btnAdminTimerStart").innerText = "▶ Bấm lại (3 phút)";
             document.getElementById("btnAdminTimerStop").style.display = "none";
+
+            // Dừng toàn bộ âm thanh
+            adminBgMusic.pause();
+            adminWarningSound.pause();
         }
 
         // --- HÀM XỬ LÝ ĐĂNG NHẬP ADMIN AN TOÀN ---
@@ -359,7 +389,13 @@
                 document.getElementById("studentInfoInputs").style.display = "flex";
                 document.getElementById("timerDisplay").style.display = "flex";
                 document.getElementById("adminCountdownContainer").style.display = "none";
-                stopAdminCountdown(); // Reset đồng hồ admin nếu đang chạy
+                
+                // Bật lại màn hình khóa nếu chưa bấm Bắt đầu
+                if (!isStarted) {
+                    document.getElementById("overlay").style.display = "flex";
+                }
+                
+                stopAdminCountdown(); 
 
             } else {
                 const pass = prompt("Vui lòng nhập mật khẩu Admin:");
@@ -385,6 +421,9 @@
                         document.getElementById("adminCountdownDisplay").innerText = "⏱ 03:00";
                         document.getElementById("adminCountdownDisplay").style.color = "#1d4ed8";
                         document.getElementById("adminCountdownDisplay").style.background = "#e0f2fe";
+                        
+                        // Ẩn lớp khóa màn hình để Admin thoải mái thao tác
+                        document.getElementById("overlay").style.display = "none";
                         
                         fetchDataFromBackend(); 
                     } else {
@@ -562,7 +601,8 @@
 
         // --- CÁC HÀM XỬ LÝ CLICK CỦA HỌC SINH ---
         function moveToWorkspace(dataId) {
-            if (!isStarted && (dataId.startsWith("ct_") || dataId.startsWith("bai") || dataId.startsWith("text"))) {
+            // Cho phép admin thao tác mà không cần bấm bắt đầu
+            if (!isStarted && !isAdminLoggedIn && (dataId.startsWith("ct_") || dataId.startsWith("bai") || dataId.startsWith("text"))) {
                 alert("Bạn cần nhập thông tin và Bấm Bắt đầu mới có thể làm bài nhé!");
                 return;
             }
