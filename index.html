@@ -253,7 +253,7 @@
         
         <div id="adminCountdownContainer" style="display: none; flex: 1; justify-content: center; align-items: center; gap: 15px;">
             <div class="timer" id="adminCountdownDisplay" style="background: #e0f2fe; color: #1d4ed8; border: 2px solid #bfdbfe; font-size: 24px; padding: 10px 30px;">⏱ 03:00</div>
-            <button class="btn-start" id="btnAdminTimerStart" onclick="startAdminCountdown()" style="background-color: #f59e0b; font-size: 16px; padding: 12px 20px;">▶ Bắt đầu (3 phút)</button>
+            <button class="btn-start" id="btnAdminTimerStart" onclick="startAdminCountdown()" style="background-color: #f59e0b; font-size: 16px; padding: 12px 20px;">▶ Bắt đầu</button>
             <button class="btn-start" id="btnAdminTimerStop" onclick="stopAdminCountdown()" style="background-color: #ef4444; font-size: 16px; padding: 12px 20px; display: none;">⏹ Dừng / Reset</button>
         </div>
 
@@ -417,7 +417,7 @@
         function stopAdminCountdown() {
             clearInterval(adminCountdownInterval);
             document.getElementById("btnAdminTimerStart").style.display = "inline-block";
-            document.getElementById("btnAdminTimerStart").innerText = "▶ Bấm lại (3 phút)";
+            document.getElementById("btnAdminTimerStart").innerText = "▶ Bấm lại";
             document.getElementById("btnAdminTimerStop").style.display = "none";
 
             // Dừng toàn bộ âm thanh
