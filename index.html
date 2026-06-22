@@ -120,6 +120,37 @@
             box-shadow: var(--shadow-hover); background-color: #f8fafc; z-index: 2;
         }
 
+        /* NÚT XÓA MỤC TRONG KHU VỰC LÀM BÀI */
+        .btn-remove-item {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background-color: var(--danger);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 26px;
+            height: 26px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 10;
+            transition: 0.2s;
+        }
+        .btn-remove-item:hover {
+            background-color: var(--danger-hover);
+            transform: scale(1.15);
+        }
+        
+        /* Hiệu ứng xuất hiện mượt mà */
+        @keyframes fadeInItem {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
         /* FORM NHẬP LIỆU BÊN TRONG BÀI LÀM */
         .input-form { background: #fffbeb; padding: 20px; border: 1px solid #fde68a; border-radius: var(--radius-md); margin-top: 15px; box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.02);}
         .input-row { margin-bottom: 15px; display: flex; align-items: center; }
@@ -635,17 +666,40 @@
             const workspace = document.getElementById("workspace");
 
             if (draggedElement) {
+                formCounter++; // Tăng biến đếm
+
+                // Tạo container bọc ngoài để chứa cả nội dung và nút Xóa
+                const wrapper = document.createElement("div");
+                wrapper.style.position = "relative";
+                wrapper.style.animation = "fadeInItem 0.3s ease";
+                wrapper.id = "workspace_item_" + formCounter;
+
+                // Tạo nút Xóa
+                const btnDelete = document.createElement("button");
+                btnDelete.innerHTML = "✖";
+                btnDelete.className = "btn-remove-item";
+                btnDelete.title = "Xóa mục này";
+                btnDelete.onclick = function() { 
+                    wrapper.remove(); 
+                };
+
                 const clone = draggedElement.cloneNode(true);
                 clone.removeAttribute("draggable");
                 clone.removeAttribute("onclick");
                 clone.style.cursor = "default";
                 clone.style.border = "2px solid var(--primary)"; 
                 clone.style.boxShadow = "0 4px 6px -1px rgba(59, 130, 246, 0.2)";
-                workspace.appendChild(clone);
 
-                formCounter++;
-                if (dataId === "ct_k1") showFormK1(workspace, formCounter);
-                if (dataId === "ct_k2") showFormK2(workspace, formCounter);
+                // Gắn nút xóa và clone vào wrapper
+                wrapper.appendChild(btnDelete);
+                wrapper.appendChild(clone);
+                
+                // Gắn wrapper vào workspace
+                workspace.appendChild(wrapper);
+
+                // Nếu là công thức thì gọi hàm tạo form (gắn vào wrapper)
+                if (dataId === "ct_k1") showFormK1(wrapper, formCounter);
+                if (dataId === "ct_k2") showFormK2(wrapper, formCounter);
             }
         }
 
