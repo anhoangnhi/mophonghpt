@@ -253,7 +253,7 @@
         
         <div id="adminCountdownContainer" style="display: none; flex: 1; justify-content: center; align-items: center; gap: 15px;">
             <div class="timer" id="adminCountdownDisplay" style="background: #e0f2fe; color: #1d4ed8; border: 2px solid #bfdbfe; font-size: 24px; padding: 10px 30px;">⏱ 03:00</div>
-            <button class="btn-start" id="btnAdminTimerStart" onclick="startAdminCountdown()" style="background-color: #f59e0b; font-size: 16px; padding: 12px 20px;">▶ Bắt đầu</button>
+            <button class="btn-start" id="btnAdminTimerStart" onclick="startAdminCountdown()" style="background-color: #f59e0b; font-size: 16px; padding: 12px 20px;">▶ Bắt đầu (3 phút)</button>
             <button class="btn-start" id="btnAdminTimerStop" onclick="stopAdminCountdown()" style="background-color: #ef4444; font-size: 16px; padding: 12px 20px; display: none;">⏹ Dừng / Reset</button>
         </div>
 
@@ -395,7 +395,7 @@
                 }
 
                 // Đổi sang nhạc báo động 11 giây cuối
-                if (adminTimeLeft === 11) {
+                if (adminTimeLeft === 20) {
                     adminBgMusic.pause();
                     adminWarningSound.currentTime = 0;
                     adminWarningSound.play().catch(e => console.log("Lỗi phát nhạc 11s:", e));
@@ -417,7 +417,7 @@
         function stopAdminCountdown() {
             clearInterval(adminCountdownInterval);
             document.getElementById("btnAdminTimerStart").style.display = "inline-block";
-            document.getElementById("btnAdminTimerStart").innerText = "▶ Bấm lại";
+            document.getElementById("btnAdminTimerStart").innerText = "▶ Bấm lại (3 phút)";
             document.getElementById("btnAdminTimerStop").style.display = "none";
 
             // Dừng toàn bộ âm thanh
@@ -759,7 +759,7 @@
             if (k0 === 1.020 && v0 === 10 && v === 8.5) {
                 const k = (k0 * v0) / v;
                 msgBox.innerHTML = `<div class="success"><span style="font-size: 20px;">🎉</span> Chúc mừng, bạn đã tính chính xác!</div>`;
-                resSpan.innerText = k.toFixed(4);
+                resSpan.innerText = k.toFixed(3);
                 resBox.style.display = "block";
                 subSteps.style.display = "block";
                 document.getElementById(`subSteps_${id}`).setAttribute("data-k", k);
@@ -797,7 +797,7 @@
             if (a === 0.1200 && v === 23 && t === 0.00585) {
                 const k = a / (v * t);
                 msgBox.innerHTML = `<div class="success"><span style="font-size: 20px;">🎉</span> Chúc mừng, bạn đã tính chính xác!</div>`;
-                resSpan.innerText = k.toFixed(4);
+                resSpan.innerText = k.toFixed(3);
                 resBox.style.display = "block";
                 subSteps.style.display = "block";
                 document.getElementById(`subSteps_${id}`).setAttribute("data-k", k);
@@ -867,7 +867,7 @@
             if (isNaN(k) || isNaN(vdc)) return;
 
             const vn = (k - 1) * vdc;
-            resSpan.innerText = vn.toFixed(3);
+            resSpan.innerText = vn.toFixed(2);
 
             const isKValid = Math.abs(k - 1.2) < 0.01;
             const isVdcValid = vdc === 50;
